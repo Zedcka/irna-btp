@@ -1316,25 +1316,47 @@
     }
 
     // ══════════════════════════════════════════
+    // FILTRAGE PAR RÔLE
+    // ══════════════════════════════════════════
+    function getMesChantiers() {
+        if (session.role === 'admin') return chantiers;
+        if (session.role === 'conducteur') return chantiers.filter(c => c.conducteur_id === session.id);
+        // chef : chantiers assignés
+        const ids = session.chantiers || [];
+        return chantiers.filter(c => ids.includes(c.id));
+    }
+
+    function getMesChantierIds() {
+        return getMesChantiers().map(c => c.id);
+    }
+
+    function filterByRole(arr, chantierKey = 'chantier_id') {
+        if (session.role === 'admin') return arr;
+        const ids = getMesChantierIds();
+        return arr.filter(x => ids.includes(x[chantierKey]));
+    }
+
+    // ══════════════════════════════════════════
     // DASHBOARD
     // ══════════════════════════════════════════
     function renderDashboard() {
         const el = document.getElementById('pageDashboard');
 
-        const mesChantiers = session.role === 'conducteur'
-            ? chantiers.filter(c => c.conducteur_id === session.id)
-            : chantiers;
+        const mesChantiers    = getMesChantiers();
+        const mesRapports     = filterByRole(rapports);
+        const mesNcs          = filterByRole(ncs);
+        const mesIncidents    = filterByRole(incidents);
 
-        const actifs = mesChantiers.filter(c => c.statut === 'En cours').length;
-        const ncsOuvertes = ncs.filter(n => ['Ouverte','En cours'].includes(n.statut)).length;
-        const incTotal = incidents.length;
-        const accAvecArret = incidents.filter(i => i.type === 'Accident avec arrêt').length;
-        const rapportsAujourd = rapports.filter(r => r.date === today()).length;
-        const rapportsSoumis = rapports.filter(r => r.statut === 'Soumis').length;
+        const actifs          = mesChantiers.filter(c => c.statut === 'En cours').length;
+        const ncsOuvertes     = mesNcs.filter(n => ['Ouverte','En cours'].includes(n.statut)).length;
+        const incTotal        = mesIncidents.length;
+        const accAvecArret    = mesIncidents.filter(i => i.type === 'Accident avec arrêt').length;
+        const rapportsAujourd = mesRapports.filter(r => r.date === today()).length;
+        const rapportsSoumis  = mesRapports.filter(r => r.statut === 'Soumis').length;
 
         // Alertes
         const alerts = [];
-        const ncDepassees = ncs.filter(n => n.statut !== 'Levée' && n.delai && new Date(n.delai) < new Date());
+        const ncDepassees = mesNcs.filter(n => n.statut !== 'Levée' && n.delai && new Date(n.delai) < new Date());
         if (ncDepassees.length > 0)
             alerts.push({ icon:'⚠️', msg:`${ncDepassees.length} non-conformité${ncDepassees.length>1?'s':''} hors délai`, crit:true });
         if (rapportsSoumis > 0)
@@ -1416,7 +1438,7 @@
 
                 <div class="card">
                     <div style="font-size:13px;font-weight:700;margin-bottom:14px;">📋 Derniers rapports</div>
-                    ${rapports.slice(0,5).map(r => {
+                    ${mesRapports.slice(0,5).map(r => {
                         const ch = chantiers.find(c=>c.id===r.chantier_id);
                         return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
                             <div>
@@ -1446,9 +1468,7 @@
         const el = document.getElementById('pageRapports');
         const isAdmin = session.role !== 'chef';
 
-        const mesFiltres = session.role === 'chef'
-            ? rapports.filter(r => r.soumis_par === session.id)
-            : rapports;
+        const mesFiltres = filterByRole(rapports);
 
         el.innerHTML = `
             <div class="page-header">
@@ -1465,7 +1485,7 @@
                 <input type="search" id="searchRapport" placeholder="🔍 Rechercher…" oninput="filterRapports()">
                 <select id="filterRapportChantier" onchange="filterRapports()">
                     <option value="">Tous les chantiers</option>
-                    ${chantiers.map(c=>`<option value="${c.id}">${esc(c.nom)}</option>`).join('')}
+                    ${getMesChantiers().map(c=>`<option value="${c.id}">${esc(c.nom)}</option>`).join('')}
                 </select>
                 <select id="filterRapportStatut" onchange="filterRapports()">
                     <option value="">Tous les statuts</option>
@@ -1501,9 +1521,7 @@
         const chId     = document.getElementById('filterRapportChantier')?.value||'';
         const statut   = document.getElementById('filterRapportStatut')?.value||'';
 
-        let src = session.role === 'chef'
-            ? rapports.filter(r => r.soumis_par === session.id)
-            : rapports;
+        let src = filterByRole(rapports);
 
         if (chId)   src = src.filter(r => r.chantier_id === chId);
         if (statut) src = src.filter(r => (r.statut||'Brouillon') === statut);
@@ -1550,11 +1568,8 @@
         document.getElementById('rMeteo').value = '';
         document.querySelectorAll('.meteo-btn').forEach(b=>b.classList.remove('active'));
 
-        // Remplir chantiers (chef voit ses chantiers assignés, sinon tous)
         const sel = document.getElementById('rChantier');
-        const mesCh = session.role === 'chef' && session.chantiers
-            ? chantiers.filter(c => session.chantiers.includes(c.id) && c.statut === 'En cours')
-            : chantiers.filter(c => c.statut === 'En cours');
+        const mesCh = getMesChantiers().filter(c => c.statut === 'En cours');
         sel.innerHTML = '<option value="">— Sélectionner —</option>' + mesCh.map(c=>`<option value="${c.id}">${esc(c.nom)}</option>`).join('');
 
         // Init effectif
@@ -1723,7 +1738,7 @@
                 <input type="search" id="searchNC" placeholder="🔍 Rechercher…" oninput="filterNC()">
                 <select id="filterNCChantier" onchange="filterNC()">
                     <option value="">Tous les chantiers</option>
-                    ${chantiers.map(c=>`<option value="${c.id}">${esc(c.nom)}</option>`).join('')}
+                    ${getMesChantiers().map(c=>`<option value="${c.id}">${esc(c.nom)}</option>`).join('')}
                 </select>
                 <select id="filterNCStatut" onchange="filterNC()">
                     <option value="">Tous les statuts</option>
@@ -1759,7 +1774,7 @@
         const chId   = document.getElementById('filterNCChantier')?.value||'';
         const statut = document.getElementById('filterNCStatut')?.value||'';
 
-        let src = [...ncs];
+        let src = filterByRole(ncs);
         if (chId)   src = src.filter(n=>n.chantier_id===chId);
         if (statut) src = src.filter(n=>(n.statut||'Ouverte')===statut);
         if (search) src = src.filter(n=>{
@@ -1800,7 +1815,7 @@
         document.getElementById('modalNCError').classList.add('hidden');
         document.getElementById('formNC').reset();
         const sel = document.getElementById('ncChantier');
-        sel.innerHTML = '<option value="">— Sélectionner —</option>' + chantiers.map(c=>`<option value="${c.id}">${esc(c.nom)}</option>`).join('');
+        sel.innerHTML = '<option value="">— Sélectionner —</option>' + getMesChantiers().map(c=>`<option value="${c.id}">${esc(c.nom)}</option>`).join('');
         openModal('modalNC');
     }
 
@@ -1912,7 +1927,7 @@
                 <input type="search" id="searchSec" placeholder="🔍 Rechercher…" oninput="filterSecurite()">
                 <select id="filterSecChantier" onchange="filterSecurite()">
                     <option value="">Tous les chantiers</option>
-                    ${chantiers.map(c=>`<option value="${c.id}">${esc(c.nom)}</option>`).join('')}
+                    ${getMesChantiers().map(c=>`<option value="${c.id}">${esc(c.nom)}</option>`).join('')}
                 </select>
                 <select id="filterSecType" onchange="filterSecurite()">
                     <option value="">Tous les types</option>
@@ -1948,7 +1963,7 @@
         const chId   = document.getElementById('filterSecChantier')?.value||'';
         const type   = document.getElementById('filterSecType')?.value||'';
 
-        let src = [...incidents];
+        let src = filterByRole(incidents);
         if (chId)  src = src.filter(i=>i.chantier_id===chId);
         if (type)  src = src.filter(i=>i.type===type);
         if (search) src = src.filter(i=>{
@@ -1995,7 +2010,7 @@
         document.querySelectorAll('.type-inc-btn').forEach(b=>b.classList.remove('active'));
         document.getElementById('secDate').value = today();
         const sel = document.getElementById('secChantier');
-        sel.innerHTML = '<option value="">— Sélectionner —</option>' + chantiers.map(c=>`<option value="${c.id}">${esc(c.nom)}</option>`).join('');
+        sel.innerHTML = '<option value="">— Sélectionner —</option>' + getMesChantiers().map(c=>`<option value="${c.id}">${esc(c.nom)}</option>`).join('');
         openModal('modalSecurite');
     }
 
