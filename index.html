@@ -1203,15 +1203,25 @@
         if (!pin)   { showLoginError('Veuillez saisir votre PIN.'); return; }
 
         if (role === 'admin') {
-            const { error } = await sb.auth.signInWithPassword({ email: 'admin@irna-btp.fr', password: pin });
-            if (error) { showLoginError('PIN incorrect.'); return; }
+            if (DEMO_MODE) {
+                if (pin !== '0000') { showLoginError('PIN démo : 0000'); return; }
+            } else {
+                const { error } = await sb.auth.signInWithPassword({ email: 'admin@irna-btp.fr', password: pin });
+                if (error) { showLoginError('PIN incorrect.'); return; }
+            }
             session = { id: 'admin', prenom: 'Direction', nom: '', role: 'admin', name: 'Direction' };
         } else {
             const userId = document.getElementById('loginUserSelect').value;
             if (!userId) { showLoginError('Veuillez sélectionner un utilisateur.'); return; }
-            const { data, error } = await sb.from('users').select('*').eq('id', userId).eq('pin', pin).single();
-            if (error || !data) { showLoginError('PIN incorrect.'); return; }
-            session = { ...data, name: data.prenom + ' ' + data.nom };
+            if (DEMO_MODE) {
+                const user = DEMO_USERS.find(u => u.id === userId && u.pin === pin);
+                if (!user) { showLoginError('PIN incorrect. (démo : 1234)'); return; }
+                session = { ...user, name: user.prenom + ' ' + user.nom };
+            } else {
+                const { data, error } = await sb.from('users').select('*').eq('id', userId).eq('pin', pin).single();
+                if (error || !data) { showLoginError('PIN incorrect.'); return; }
+                session = { ...data, name: data.prenom + ' ' + data.nom };
+            }
         }
 
         await startApp();
