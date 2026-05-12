@@ -680,6 +680,15 @@
         </div>
 
         <button class="btn-login" onclick="submitLogin()">Connexion</button>
+
+        <div style="margin-top:20px;padding-top:20px;border-top:1px solid #e2e8f0;text-align:center;">
+            <div style="font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">Mode démonstration</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+                <button onclick="loginDemo('admin')" style="padding:10px 6px;border:1.5px solid #e2e8f0;border-radius:8px;background:#f8fafc;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',system-ui,sans-serif;color:#64748b;transition:all .15s;" onmouseover="this.style.borderColor='#f97316';this.style.color='#c2410c'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b'">👔 Direction</button>
+                <button onclick="loginDemo('conducteur')" style="padding:10px 6px;border:1.5px solid #e2e8f0;border-radius:8px;background:#f8fafc;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',system-ui,sans-serif;color:#64748b;transition:all .15s;" onmouseover="this.style.borderColor='#3b82f6';this.style.color='#1d4ed8'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b'">🏗️ Conducteur</button>
+                <button onclick="loginDemo('chef')" style="padding:10px 6px;border:1.5px solid #e2e8f0;border-radius:8px;background:#f8fafc;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',system-ui,sans-serif;color:#64748b;transition:all .15s;" onmouseover="this.style.borderColor='#16a34a';this.style.color='#15803d'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b'">👷 Chef chantier</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -1053,6 +1062,42 @@
     const SUPABASE_URL = 'VOTRE_URL_SUPABASE';
     const SUPABASE_KEY = 'VOTRE_CLE_SUPABASE';
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const DEMO_MODE = SUPABASE_URL === 'VOTRE_URL_SUPABASE';
+
+    // ══════════════════════════════════════════
+    // DONNÉES DE DÉMO
+    // ══════════════════════════════════════════
+    const DEMO_USERS = [
+        { id: 'u1', prenom: 'Marc', nom: 'Dupont',   role: 'conducteur', pin: '1234', chantiers: ['c1','c2'] },
+        { id: 'u2', prenom: 'Julie', nom: 'Bernard', role: 'conducteur', pin: '1234', chantiers: ['c3'] },
+        { id: 'u3', prenom: 'Kevin', nom: 'Martin',  role: 'chef',       pin: '1234', chantiers: ['c1'] },
+        { id: 'u4', prenom: 'Sofia', nom: 'Ramos',   role: 'chef',       pin: '1234', chantiers: ['c2'] },
+        { id: 'u5', prenom: 'Karim', nom: 'Benali',  role: 'chef',       pin: '1234', chantiers: ['c3'] },
+    ];
+    const DEMO_CHANTIERS = [
+        { id: 'c1', nom: 'Résidence Les Acacias — Bât A', adresse: '14 rue des Lilas, 69003 Lyon', statut: 'En cours', conducteur_id: 'u1', debut: '2025-01-15', fin: '2025-12-20' },
+        { id: 'c2', nom: 'Immeuble Le Parc — R+5',        adresse: '8 avenue Carnot, 69006 Lyon',  statut: 'En cours', conducteur_id: 'u1', debut: '2025-03-01', fin: '2026-06-30' },
+        { id: 'c3', nom: 'Villa Montfort — Rénovation',   adresse: '27 chemin du Moulin, 01000 Bourg-en-Bresse', statut: 'En cours', conducteur_id: 'u2', debut: '2025-04-10', fin: '2025-09-30' },
+        { id: 'c4', nom: 'Entrepôt Logistique Z3',        adresse: 'Zone Industrielle Nord, 69150 Décines', statut: 'Terminé', conducteur_id: 'u2', debut: '2024-06-01', fin: '2025-02-28' },
+    ];
+    const DEMO_RAPPORTS = [
+        { id: 'r1', chantier_id: 'c1', date: '2026-05-12', meteo: '☀️', effectif: [{metier:'Maçon',nb:4},{metier:'Coffreur',nb:2},{metier:'Chef de chantier',nb:1}], total_effectif: 7, avancement: 'Coulage dalle niveau 3 terminé, début coffrage escalier B', materiaux: 'Livraison 30 m³ béton, pose armatures R3', problemes: '', statut: 'Validé', soumis_par: 'u3' },
+        { id: 'r2', chantier_id: 'c1', date: '2026-05-11', meteo: '⛅', effectif: [{metier:'Maçon',nb:3},{metier:'Ferrailleur',nb:3},{metier:'Chef de chantier',nb:1}], total_effectif: 7, avancement: 'Ferraillage dalle R3, préparation coulage demain', materiaux: '200 kg acier HA livré', problemes: 'Retard livraison coffrage — prévu demain matin', statut: 'Validé', soumis_par: 'u3' },
+        { id: 'r3', chantier_id: 'c2', date: '2026-05-12', meteo: '🌧️', effectif: [{metier:'Coffreur',nb:5},{metier:'Électricien',nb:2},{metier:'Chef de chantier',nb:1}], total_effectif: 8, avancement: 'Gros œuvre R+2 : murs porteurs nord terminés', materiaux: '', problemes: 'Pluie forte — arrêt chantier 14h-16h', statut: 'Soumis', soumis_par: 'u4' },
+        { id: 'r4', chantier_id: 'c3', date: '2026-05-12', meteo: '☀️', effectif: [{metier:'Charpentier',nb:2},{metier:'Couvreur',nb:2}], total_effectif: 4, avancement: 'Pose charpente bois terminée, début couverture tuiles', materiaux: 'Livraison 400 tuiles canal', problemes: '', statut: 'Soumis', soumis_par: 'u5' },
+        { id: 'r5', chantier_id: 'c2', date: '2026-05-10', meteo: '☀️', effectif: [{metier:'Maçon',nb:4},{metier:'Coffreur',nb:4},{metier:'Chef de chantier',nb:1}], total_effectif: 9, avancement: 'Coulage semelles filantes R+1 terminé', materiaux: '45 m³ béton, 15 m² coffrages métalliques', problemes: '', statut: 'Validé', soumis_par: 'u4' },
+    ];
+    const DEMO_NCS = [
+        { id: 'n1', chantier_id: 'c1', type: 'Malfaçon', localisation: 'Niveau 2 — Façade sud', description: 'Fissures apparentes sur le mur pignon sud, largeur > 0.3mm. Nécessite reprise enduit.', assigne: 'Entreprise Maçonnerie Duval', delai: '2026-05-20', statut: 'En cours', soumis_par: 'u3', created_at: '2026-05-08T09:00:00Z' },
+        { id: 'n2', chantier_id: 'c2', type: 'Non-respect des plans', localisation: 'R+1 — Appartement A104', description: 'Cloison de séparation décalée de 15cm par rapport au plan d\'exécution ref. PEX-104-v2', assigne: 'Sous-traitant Platrier SAS', delai: '2026-05-15', statut: 'Ouverte', soumis_par: 'u4', created_at: '2026-05-10T14:30:00Z' },
+        { id: 'n3', chantier_id: 'c3', type: 'Défaut matériau', localisation: 'Toiture — Versant nord', description: '12 tuiles livrées présentent des fissures d\'origine. Retour fournisseur nécessaire.', assigne: 'Fournisseur Matériaux Grégoire', delai: '2026-05-13', statut: 'Ouverte', soumis_par: 'u5', created_at: '2026-05-11T11:00:00Z' },
+        { id: 'n4', chantier_id: 'c1', type: 'Non-conformité réglementaire', localisation: 'Niveau 1 — Cage escalier', description: 'Garde-corps provisoire non conforme hauteur réglementaire (< 1m). Remplacement immédiat requis.', assigne: '', delai: '2026-05-13', statut: 'Levée', soumis_par: 'u3', created_at: '2026-05-05T08:00:00Z' },
+    ];
+    const DEMO_INCIDENTS = [
+        { id: 'i1', chantier_id: 'c1', date: '2026-05-09', type: "Presqu'accident", personne: '', description: 'Chute d\'un outil (clé à molette) depuis l\'échafaudage niveau 2. Atterri à 50cm d\'un ouvrier. Zone non balisée.', actions_correctives: 'Balisage zone pied d\'échafaudage renforcé. Rappel consignes rangement outils en hauteur.', statut: 'Clôturé', soumis_par: 'u3', created_at: '2026-05-09T15:30:00Z' },
+        { id: 'i2', chantier_id: 'c2', date: '2026-05-11', type: 'Accident sans arrêt', personne: 'Luc Fournier — Maçon (intérimaire)', description: 'Coupure main droite lors manipulation armature métallique sans gants. Soins infirmerie de chantier.', actions_correctives: 'Rappel EPI obligatoires. Vérification dotation gants tous les compagnons.', statut: 'Clôturé', soumis_par: 'u4', created_at: '2026-05-11T10:00:00Z' },
+        { id: 'i3', chantier_id: 'c3', date: '2026-05-12', type: 'Incident matériel', personne: '', description: 'Fuite hydraulique sur mini-pelle CASE CX26. Perte huile importante, chantier arrêté 2h. Réparation effectuée sur place.', actions_correctives: 'Contrôle hydraulique préventif tous les engins planifié pour semaine 21.', statut: 'Ouvert', soumis_par: 'u5', created_at: '2026-05-12T08:45:00Z' },
+    ];
 
     // ══════════════════════════════════════════
     // ÉTAT GLOBAL
@@ -1106,6 +1151,16 @@
     // ══════════════════════════════════════════
     // LOGIN
     // ══════════════════════════════════════════
+    async function loginDemo(role) {
+        const demoSessions = {
+            admin:      { id: 'admin', prenom: 'Direction', nom: '', role: 'admin', name: 'Direction' },
+            conducteur: { ...DEMO_USERS[0], name: DEMO_USERS[0].prenom + ' ' + DEMO_USERS[0].nom },
+            chef:       { ...DEMO_USERS[2], name: DEMO_USERS[2].prenom + ' ' + DEMO_USERS[2].nom },
+        };
+        session = demoSessions[role];
+        await startApp();
+    }
+
     async function loadUsersForLogin() {
         const { data } = await sb.from('users').select('id, prenom, nom, role').order('nom');
         users = data || [];
@@ -1193,6 +1248,14 @@
     }
 
     async function loadAll() {
+        if (DEMO_MODE) {
+            chantiers = DEMO_CHANTIERS;
+            rapports  = DEMO_RAPPORTS;
+            ncs       = DEMO_NCS;
+            incidents = DEMO_INCIDENTS;
+            users     = DEMO_USERS;
+            return;
+        }
         const [c, r, n, i, u] = await Promise.all([
             sb.from('chantiers').select('*').order('nom'),
             sb.from('rapports').select('*').order('date', { ascending: false }),
@@ -1569,9 +1632,14 @@
             created_at:     new Date().toISOString()
         };
 
-        const { data, error } = await sb.from('rapports').insert(rapport).select().single();
-        if (error) { errEl.textContent='Erreur : '+error.message; errEl.classList.remove('hidden'); return; }
-
+        let data;
+        if (DEMO_MODE) {
+            data = { ...rapport, id: crypto.randomUUID() };
+        } else {
+            const res = await sb.from('rapports').insert(rapport).select().single();
+            if (res.error) { errEl.textContent='Erreur : '+res.error.message; errEl.classList.remove('hidden'); return; }
+            data = res.data;
+        }
         rapports.unshift(data);
         closeModal('modalRapport');
         renderRapports();
@@ -1620,10 +1688,12 @@
     }
 
     async function validerRapport(id) {
-        const { error } = await sb.from('rapports').update({ statut: 'Validé', valide_par: session.id }).eq('id', id);
-        if (error) { showToast('❌ Erreur lors de la validation.'); return; }
+        if (!DEMO_MODE) {
+            const { error } = await sb.from('rapports').update({ statut: 'Validé', valide_par: session.id }).eq('id', id);
+            if (error) { showToast('❌ Erreur lors de la validation.'); return; }
+        }
         const r = rapports.find(x=>x.id===id);
-        if (r) r.statut = 'Validé';
+        if (r) { r.statut = 'Validé'; r.valide_par = session.id; }
         renderRapports();
         showToast('✅ Rapport validé.');
     }
@@ -1751,9 +1821,14 @@
 
         if (!nc.chantier_id) { errEl.textContent='Veuillez sélectionner un chantier.'; errEl.classList.remove('hidden'); return; }
 
-        const { data, error } = await sb.from('non_conformites').insert(nc).select().single();
-        if (error) { errEl.textContent='Erreur : '+error.message; errEl.classList.remove('hidden'); return; }
-
+        let data;
+        if (DEMO_MODE) {
+            data = { ...nc, id: crypto.randomUUID() };
+        } else {
+            const res = await sb.from('non_conformites').insert(nc).select().single();
+            if (res.error) { errEl.textContent='Erreur : '+res.error.message; errEl.classList.remove('hidden'); return; }
+            data = res.data;
+        }
         ncs.unshift(data);
         closeModal('modalNC');
         renderNC();
@@ -1791,8 +1866,10 @@
     }
 
     async function updateStatutNC(id, statut) {
-        const { error } = await sb.from('non_conformites').update({ statut }).eq('id', id);
-        if (error) { showToast('❌ Erreur.'); return; }
+        if (!DEMO_MODE) {
+            const { error } = await sb.from('non_conformites').update({ statut }).eq('id', id);
+            if (error) { showToast('❌ Erreur.'); return; }
+        }
         const n = ncs.find(x=>x.id===id);
         if (n) n.statut = statut;
         closeModal('modalDetailNC');
@@ -1943,9 +2020,14 @@
             created_at:         new Date().toISOString()
         };
 
-        const { data, error } = await sb.from('incidents_securite').insert(inc).select().single();
-        if (error) { errEl.textContent='Erreur : '+error.message; errEl.classList.remove('hidden'); return; }
-
+        let data;
+        if (DEMO_MODE) {
+            data = { ...inc, id: crypto.randomUUID() };
+        } else {
+            const res = await sb.from('incidents_securite').insert(inc).select().single();
+            if (res.error) { errEl.textContent='Erreur : '+res.error.message; errEl.classList.remove('hidden'); return; }
+            data = res.data;
+        }
         incidents.unshift(data);
         closeModal('modalSecurite');
         renderSecurite();
@@ -1984,8 +2066,10 @@
     }
 
     async function updateStatutSecurite(id, statut) {
-        const { error } = await sb.from('incidents_securite').update({ statut }).eq('id', id);
-        if (error) { showToast('❌ Erreur.'); return; }
+        if (!DEMO_MODE) {
+            const { error } = await sb.from('incidents_securite').update({ statut }).eq('id', id);
+            if (error) { showToast('❌ Erreur.'); return; }
+        }
         const i = incidents.find(x=>x.id===id);
         if (i) i.statut = statut;
         closeModal('modalDetailSecurite');
@@ -2060,13 +2144,18 @@
             created_at:   new Date().toISOString()
         };
 
-        const { data, error } = await sb.from('chantiers').insert(ch).select().single();
-        if (error) {
-            document.getElementById('modalChantierError').textContent = 'Erreur : '+error.message;
-            document.getElementById('modalChantierError').classList.remove('hidden');
-            return;
+        let data;
+        if (DEMO_MODE) {
+            data = { ...ch, id: crypto.randomUUID() };
+        } else {
+            const res = await sb.from('chantiers').insert(ch).select().single();
+            if (res.error) {
+                document.getElementById('modalChantierError').textContent = 'Erreur : '+res.error.message;
+                document.getElementById('modalChantierError').classList.remove('hidden');
+                return;
+            }
+            data = res.data;
         }
-
         chantiers.push(data);
         chantiers.sort((a,b)=>a.nom.localeCompare(b.nom));
         closeModal('modalChantier');
@@ -2123,9 +2212,14 @@
             created_at: new Date().toISOString()
         };
 
-        const { data, error } = await sb.from('users').insert(user).select().single();
-        if (error) { errEl.textContent='Erreur : '+error.message; errEl.classList.remove('hidden'); return; }
-
+        let data;
+        if (DEMO_MODE) {
+            data = { ...user, id: crypto.randomUUID() };
+        } else {
+            const res = await sb.from('users').insert(user).select().single();
+            if (res.error) { errEl.textContent='Erreur : '+res.error.message; errEl.classList.remove('hidden'); return; }
+            data = res.data;
+        }
         users.push(data);
         closeModal('modalUser');
         renderUtilisateurs();
@@ -2134,8 +2228,10 @@
 
     async function deleteUser(id) {
         if (!confirm('Supprimer cet utilisateur ?')) return;
-        const { error } = await sb.from('users').delete().eq('id', id);
-        if (error) { showToast('❌ Erreur.'); return; }
+        if (!DEMO_MODE) {
+            const { error } = await sb.from('users').delete().eq('id', id);
+            if (error) { showToast('❌ Erreur.'); return; }
+        }
         users = users.filter(u=>u.id!==id);
         renderUtilisateurs();
         showToast('✅ Utilisateur supprimé.');
