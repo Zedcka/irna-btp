@@ -1,0 +1,2154 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Irna BTP — Gestion Chantiers</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --orange:        #f97316;
+            --orange-dark:   #c2410c;
+            --orange-light:  #fff7ed;
+            --blue:          #1d4ed8;
+            --blue-light:    #eff6ff;
+            --white:         #ffffff;
+            --bg:            #f1f5f9;
+            --text:          #0f172a;
+            --muted:         #64748b;
+            --border:        #e2e8f0;
+            --card:          #ffffff;
+            --card-hover:    #f8fafc;
+            --input-bg:      #ffffff;
+            --green:         #16a34a;
+            --green-light:   #f0fdf4;
+            --red:           #dc2626;
+            --red-light:     #fef2f2;
+            --yellow:        #d97706;
+            --yellow-light:  #fffbeb;
+        }
+
+        body.dark {
+            --orange:        #f97316;
+            --orange-dark:   #c2410c;
+            --orange-light:  #2c1503;
+            --blue:          #3b82f6;
+            --blue-light:    #0c1a3d;
+            --bg:            #0f172a;
+            --text:          #e2e8f0;
+            --muted:         #64748b;
+            --border:        #1e293b;
+            --card:          #1e293b;
+            --card-hover:    #253347;
+            --input-bg:      #162032;
+            --green:         #22c55e;
+            --green-light:   #052e16;
+            --red:           #ef4444;
+            --red-light:     #2d0a0a;
+            --yellow:        #f59e0b;
+            --yellow-light:  #1c1203;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        .hidden { display: none !important; }
+
+        /* ── Header ── */
+        .header {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: white;
+            padding: 16px 32px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .logo { display: flex; align-items: center; gap: 12px; }
+        .logo-icon {
+            width: 40px; height: 40px;
+            background: var(--orange);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+        }
+        .logo h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+        .logo p { font-size: 11px; opacity: 0.55; margin-top: 1px; }
+
+        .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+        .btn-header {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.15);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'DM Sans', system-ui, sans-serif;
+            transition: all 0.15s;
+        }
+        .btn-header:hover { background: rgba(255,255,255,0.18); }
+        .btn-header.orange { background: var(--orange); border-color: var(--orange); }
+        .btn-header.orange:hover { background: var(--orange-dark); }
+
+        .user-badge {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 13px; color: rgba(255,255,255,0.8);
+        }
+        .role-pill {
+            font-size: 10px; font-weight: 700; padding: 2px 8px;
+            border-radius: 20px; text-transform: uppercase;
+        }
+        .role-admin     { background: var(--orange); color: white; }
+        .role-conducteur { background: #3b82f6; color: white; }
+        .role-chef      { background: #16a34a; color: white; }
+
+        /* ── Nav tabs ── */
+        .nav-tabs {
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            padding: 0 32px;
+        }
+        .nav-tabs-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+        .nav-tab {
+            padding: 14px 20px;
+            border: none;
+            background: none;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--muted);
+            cursor: pointer;
+            font-family: 'DM Sans', system-ui, sans-serif;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -1px;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+        .nav-tab:hover { color: var(--text); }
+        .nav-tab.active { color: var(--orange); border-bottom-color: var(--orange); }
+
+        /* ── Container ── */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px 32px;
+        }
+
+        /* ── Login ── */
+        #loginScreen {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+            padding: 20px;
+        }
+
+        .login-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+        }
+
+        .login-logo {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+        .login-logo-icon {
+            width: 64px; height: 64px;
+            background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%);
+            border-radius: 16px;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 32px;
+            margin-bottom: 12px;
+        }
+        .login-logo h2 { font-size: 22px; font-weight: 800; color: #0f172a; }
+        .login-logo p { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+        .role-tabs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-bottom: 20px;
+        }
+        .role-tab {
+            padding: 10px 6px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            background: #f8fafc;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            font-family: 'DM Sans', system-ui, sans-serif;
+            transition: all 0.15s;
+            color: #64748b;
+        }
+        .role-tab.active {
+            border-color: var(--orange);
+            background: var(--orange-light);
+            color: var(--orange-dark);
+        }
+
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 12px; font-weight: 700; color: #374151; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.4px; }
+        .form-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'DM Sans', system-ui, sans-serif;
+            background: #f8fafc;
+            color: #0f172a;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+        .form-input:focus { border-color: var(--orange); background: white; }
+
+        .form-select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'DM Sans', system-ui, sans-serif;
+            background: #f8fafc;
+            color: #0f172a;
+            outline: none;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+        }
+        .form-select:focus { border-color: var(--orange); }
+
+        .btn-login {
+            width: 100%;
+            padding: 13px;
+            background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'DM Sans', system-ui, sans-serif;
+            transition: opacity 0.15s;
+            margin-top: 4px;
+        }
+        .btn-login:hover { opacity: 0.9; }
+
+        .login-error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 16px;
+        }
+
+        /* ── Cards / Panels ── */
+        .card {
+            background: var(--card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            padding: 20px;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .page-title { font-size: 20px; font-weight: 700; }
+        .page-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+        .btn-primary {
+            background: var(--orange);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'DM Sans', system-ui, sans-serif;
+            transition: background 0.15s;
+        }
+        .btn-primary:hover { background: var(--orange-dark); }
+
+        .btn-secondary {
+            background: var(--card);
+            color: var(--text);
+            border: 1.5px solid var(--border);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'DM Sans', system-ui, sans-serif;
+            transition: all 0.15s;
+        }
+        .btn-secondary:hover { border-color: var(--orange); color: var(--orange); }
+
+        .btn-sm {
+            padding: 6px 14px;
+            font-size: 12px;
+        }
+
+        /* ── Dashboard KPIs ── */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+        }
+        .kpi-card.orange::before { background: var(--orange); }
+        .kpi-card.blue::before   { background: var(--blue); }
+        .kpi-card.green::before  { background: var(--green); }
+        .kpi-card.red::before    { background: var(--red); }
+
+        .kpi-val { font-size: 32px; font-weight: 800; line-height: 1; }
+        .kpi-label { font-size: 12px; color: var(--muted); margin-top: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+        .kpi-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+        /* ── Table ── */
+        .table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; background: var(--card); }
+        thead th {
+            padding: 11px 16px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+        }
+        tbody td {
+            padding: 13px 16px;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover td { background: var(--card-hover); }
+
+        /* ── Badges statut ── */
+        .badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .badge-orange  { background: var(--orange-light); color: var(--orange-dark); }
+        .badge-green   { background: var(--green-light); color: var(--green); }
+        .badge-red     { background: var(--red-light); color: var(--red); }
+        .badge-blue    { background: var(--blue-light); color: var(--blue); }
+        .badge-yellow  { background: var(--yellow-light); color: var(--yellow); }
+        .badge-gray    { background: var(--bg); color: var(--muted); }
+
+        /* ── Modal ── */
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal {
+            background: var(--card);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 620px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 28px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.25);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        .modal-title { font-size: 18px; font-weight: 700; }
+        .btn-close {
+            background: none; border: none; font-size: 18px;
+            cursor: pointer; color: var(--muted); padding: 4px;
+            border-radius: 6px; transition: background 0.15s;
+        }
+        .btn-close:hover { background: var(--bg); }
+
+        .modal .form-group { margin-bottom: 18px; }
+        .modal .form-input, .modal .form-select {
+            background: var(--input-bg);
+            color: var(--text);
+            border-color: var(--border);
+        }
+        .modal .form-input:focus, .modal .form-select:focus { border-color: var(--orange); }
+        .modal .form-label { color: var(--muted); }
+
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .form-textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: 'DM Sans', system-ui, sans-serif;
+            background: var(--input-bg);
+            color: var(--text);
+            outline: none;
+            resize: vertical;
+            min-height: 80px;
+        }
+        .form-textarea:focus { border-color: var(--orange); }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .form-error {
+            background: var(--red-light);
+            border: 1px solid #fecaca;
+            color: var(--red);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 16px;
+        }
+
+        /* ── Effectif builder ── */
+        .effectif-row {
+            display: grid;
+            grid-template-columns: 1fr 80px 36px;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .effectif-row input[type="number"] {
+            padding: 8px 10px;
+            border: 1.5px solid var(--border);
+            border-radius: 7px;
+            font-size: 13px;
+            background: var(--input-bg);
+            color: var(--text);
+            font-family: 'DM Sans', system-ui, sans-serif;
+            text-align: center;
+        }
+        .effectif-row select {
+            padding: 8px 10px;
+            border: 1.5px solid var(--border);
+            border-radius: 7px;
+            font-size: 13px;
+            background: var(--input-bg);
+            color: var(--text);
+            font-family: 'DM Sans', system-ui, sans-serif;
+        }
+        .btn-icon {
+            width: 32px; height: 32px;
+            border: 1.5px solid var(--border);
+            border-radius: 7px;
+            background: var(--bg);
+            cursor: pointer;
+            font-size: 14px;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--muted);
+            transition: all 0.15s;
+        }
+        .btn-icon:hover { border-color: var(--red); color: var(--red); background: var(--red-light); }
+        .btn-add-effectif {
+            font-size: 12px; font-weight: 600; color: var(--blue);
+            background: none; border: 1.5px dashed var(--border);
+            border-radius: 7px; padding: 7px 14px; cursor: pointer;
+            font-family: 'DM Sans', system-ui, sans-serif;
+            width: 100%; margin-top: 4px; transition: all 0.15s;
+        }
+        .btn-add-effectif:hover { border-color: var(--blue); background: var(--blue-light); }
+
+        /* ── Météo selector ── */
+        .meteo-grid {
+            display: flex; gap: 8px; flex-wrap: wrap;
+        }
+        .meteo-btn {
+            padding: 8px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            background: var(--card);
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.15s;
+        }
+        .meteo-btn.active { border-color: var(--orange); background: var(--orange-light); }
+
+        /* ── Toast ── */
+        .toast {
+            position: fixed; bottom: 24px; right: 24px;
+            background: #0f172a; color: white;
+            padding: 12px 20px; border-radius: 10px;
+            font-size: 13px; font-weight: 600;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+            z-index: 9999;
+            transform: translateY(80px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+
+        /* ── Detail panel ── */
+        .detail-field { margin-bottom: 14px; }
+        .detail-field label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; display: block; margin-bottom: 4px; }
+        .detail-field .val { font-size: 14px; color: var(--text); }
+
+        /* ── Chantier card ── */
+        .chantier-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+        .chantier-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.15s;
+            position: relative;
+            overflow: hidden;
+        }
+        .chantier-card:hover { border-color: var(--orange); box-shadow: 0 4px 20px rgba(249,115,22,0.1); }
+        .chantier-card::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; height: 4px;
+            background: linear-gradient(90deg, var(--orange), var(--orange-dark));
+        }
+        .chantier-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+        .chantier-card p { font-size: 12px; color: var(--muted); }
+        .chantier-stats { display: flex; gap: 16px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+        .chantier-stat { text-align: center; flex: 1; }
+        .chantier-stat .n { font-size: 18px; font-weight: 800; }
+        .chantier-stat .l { font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: 600; }
+
+        /* ── Avancement bar ── */
+        .progress-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 10px; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--orange), var(--orange-dark)); border-radius: 3px; transition: width 0.6s ease; }
+
+        /* ── Empty state ── */
+        .empty-state { text-align: center; padding: 48px 20px; color: var(--muted); }
+        .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+        .empty-state p { font-size: 14px; }
+
+        /* ── Filters bar ── */
+        .filters-bar {
+            display: flex; gap: 10px; flex-wrap: wrap;
+            margin-bottom: 20px; align-items: center;
+        }
+        .filters-bar input, .filters-bar select {
+            padding: 8px 12px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            background: var(--input-bg);
+            color: var(--text);
+            font-family: 'DM Sans', system-ui, sans-serif;
+            outline: none;
+        }
+        .filters-bar input:focus, .filters-bar select:focus { border-color: var(--orange); }
+        .filters-bar input[type="search"] { min-width: 200px; }
+
+        /* ── Rapport card (mobile) ── */
+        .rapport-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: border-color 0.15s;
+        }
+        .rapport-card:hover { border-color: var(--orange); }
+        .rapport-card h4 { font-size: 14px; font-weight: 700; }
+        .rapport-card .meta { font-size: 12px; color: var(--muted); margin-top: 4px; display: flex; gap: 12px; flex-wrap: wrap; }
+
+        /* ── Responsive ── */
+        @media (max-width: 768px) {
+            .header { padding: 12px 16px; }
+            .container { padding: 16px; }
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+            .nav-tabs { padding: 0 16px; overflow-x: auto; }
+            .nav-tab { padding: 12px 14px; font-size: 12px; }
+            .form-row { grid-template-columns: 1fr; }
+            .role-tabs { grid-template-columns: 1fr; }
+            .modal { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════
+     ÉCRAN DE LOGIN
+══════════════════════════════════════════════ -->
+<div id="loginScreen">
+    <div class="login-card">
+        <div class="login-logo">
+            <div class="login-logo-icon">🏗️</div>
+            <h2>Irna BTP</h2>
+            <p>Gestion des chantiers</p>
+        </div>
+
+        <div id="loginError" class="login-error hidden"></div>
+
+        <div class="form-group">
+            <label class="form-label">Rôle</label>
+            <div class="role-tabs">
+                <button class="role-tab" data-role="chef" onclick="selectRole('chef')">👷 Chef de chantier</button>
+                <button class="role-tab" data-role="conducteur" onclick="selectRole('conducteur')">🏗️ Conducteur</button>
+                <button class="role-tab" data-role="admin" onclick="selectRole('admin')">👔 Direction</button>
+            </div>
+            <input type="hidden" id="selectedRole" value="">
+        </div>
+
+        <div class="form-group hidden" id="userGroup">
+            <label class="form-label">Utilisateur</label>
+            <select id="loginUserSelect" class="form-select">
+                <option value="">— Sélectionner —</option>
+            </select>
+        </div>
+
+        <div class="form-group hidden" id="pinGroup">
+            <label class="form-label">Code PIN</label>
+            <input type="password" id="loginPin" class="form-input" placeholder="••••••"
+                onkeypress="if(event.key==='Enter') submitLogin()">
+        </div>
+
+        <button class="btn-login" onclick="submitLogin()">Connexion</button>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     APP PRINCIPALE
+══════════════════════════════════════════════ -->
+<div id="appScreen" class="hidden">
+
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">🏗️</div>
+                <div>
+                    <h1>Irna BTP</h1>
+                    <p>Gestion des chantiers</p>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="user-badge" id="headerUser"></div>
+                <button class="btn-header" onclick="toggleDark()" id="btnDark">🌙</button>
+                <button class="btn-header" onclick="logout()">Déconnexion</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nav tabs -->
+    <div class="nav-tabs" id="navTabs">
+        <div class="nav-tabs-inner" id="navTabsInner"></div>
+    </div>
+
+    <!-- Contenu -->
+    <div class="container">
+        <div id="pageDashboard" class="hidden"></div>
+        <div id="pageRapports" class="hidden"></div>
+        <div id="pageNC" class="hidden"></div>
+        <div id="pageSecurite" class="hidden"></div>
+        <div id="pageChantiers" class="hidden"></div>
+        <div id="pageUtilisateurs" class="hidden"></div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     MODALS
+══════════════════════════════════════════════ -->
+
+<!-- Modal Nouveau Rapport -->
+<div id="modalRapport" class="modal-overlay hidden">
+    <div class="modal" style="max-width:680px;">
+        <div class="modal-header">
+            <h2 class="modal-title" id="modalRapportTitle">Nouveau rapport journalier</h2>
+            <button class="btn-close" onclick="closeModal('modalRapport')">✕</button>
+        </div>
+        <div id="modalRapportError" class="form-error hidden"></div>
+        <form id="formRapport" onsubmit="submitRapport(event)">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Chantier</label>
+                    <select id="rChantier" class="form-select" required></select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Date</label>
+                    <input type="date" id="rDate" class="form-input" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Météo</label>
+                <div class="meteo-grid" id="meteoGrid">
+                    <button type="button" class="meteo-btn" data-meteo="☀️" onclick="selectMeteo('☀️')">☀️</button>
+                    <button type="button" class="meteo-btn" data-meteo="⛅" onclick="selectMeteo('⛅')">⛅</button>
+                    <button type="button" class="meteo-btn" data-meteo="🌧️" onclick="selectMeteo('🌧️')">🌧️</button>
+                    <button type="button" class="meteo-btn" data-meteo="🌩️" onclick="selectMeteo('🌩️')">🌩️</button>
+                    <button type="button" class="meteo-btn" data-meteo="❄️" onclick="selectMeteo('❄️')">❄️</button>
+                    <button type="button" class="meteo-btn" data-meteo="🌬️" onclick="selectMeteo('🌬️')">🌬️</button>
+                </div>
+                <input type="hidden" id="rMeteo" value="">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Effectif du jour</label>
+                <div id="effectifList"></div>
+                <button type="button" class="btn-add-effectif" onclick="addEffectifRow()">+ Ajouter un corps de métier</button>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Avancement des travaux</label>
+                <input type="text" id="rAvancement" class="form-input" placeholder="Ex: Coulage dalle niveau 2, pose charpente aile nord…">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Matériaux reçus / utilisés</label>
+                <textarea id="rMateriaux" class="form-textarea" rows="2" placeholder="Ex: Livraison 40 m³ béton, 200 parpaings…"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Problèmes / Observations</label>
+                <textarea id="rProblemes" class="form-textarea" rows="3" placeholder="Retards, imprévus, points d'attention…"></textarea>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" onclick="closeModal('modalRapport')">Annuler</button>
+                <button type="submit" class="btn-primary" id="btnSubmitRapport">Enregistrer le rapport</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Detail Rapport -->
+<div id="modalDetailRapport" class="modal-overlay hidden">
+    <div class="modal" style="max-width:640px;">
+        <div class="modal-header">
+            <h2 class="modal-title" id="detailRapportTitle">Rapport journalier</h2>
+            <button class="btn-close" onclick="closeModal('modalDetailRapport')">✕</button>
+        </div>
+        <div id="detailRapportContent"></div>
+    </div>
+</div>
+
+<!-- Modal Nouvelle NC -->
+<div id="modalNC" class="modal-overlay hidden">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 class="modal-title" id="modalNCTitle">Nouvelle non-conformité</h2>
+            <button class="btn-close" onclick="closeModal('modalNC')">✕</button>
+        </div>
+        <div id="modalNCError" class="form-error hidden"></div>
+        <form id="formNC" onsubmit="submitNC(event)">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Chantier</label>
+                    <select id="ncChantier" class="form-select" required></select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Type</label>
+                    <select id="ncType" class="form-select" required>
+                        <option value="">— Sélectionner —</option>
+                        <option>Malfaçon</option>
+                        <option>Non-respect des plans</option>
+                        <option>Défaut matériau</option>
+                        <option>Problème sécurité</option>
+                        <option>Non-conformité réglementaire</option>
+                        <option>Autre</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Localisation dans le chantier</label>
+                <input type="text" id="ncLocalisation" class="form-input" placeholder="Ex: Niveau 2, Appartement B12, Façade ouest…" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Description</label>
+                <textarea id="ncDescription" class="form-textarea" rows="3" placeholder="Décrivez précisément la non-conformité constatée…" required></textarea>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Assigné à (sous-traitant / entreprise)</label>
+                    <input type="text" id="ncAssigne" class="form-input" placeholder="Ex: Entreprise Martin Elec">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Délai de correction</label>
+                    <input type="date" id="ncDelai" class="form-input">
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" onclick="closeModal('modalNC')">Annuler</button>
+                <button type="submit" class="btn-primary">Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Detail NC -->
+<div id="modalDetailNC" class="modal-overlay hidden">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 class="modal-title">Non-conformité</h2>
+            <button class="btn-close" onclick="closeModal('modalDetailNC')">✕</button>
+        </div>
+        <div id="detailNCContent"></div>
+    </div>
+</div>
+
+<!-- Modal Nouvel Incident Sécurité -->
+<div id="modalSecurite" class="modal-overlay hidden">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 class="modal-title" id="modalSecuriteTitle">Déclaration incident sécurité</h2>
+            <button class="btn-close" onclick="closeModal('modalSecurite')">✕</button>
+        </div>
+        <div id="modalSecuriteError" class="form-error hidden"></div>
+        <form id="formSecurite" onsubmit="submitSecurite(event)">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Chantier</label>
+                    <select id="secChantier" class="form-select" required></select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Date</label>
+                    <input type="date" id="secDate" class="form-input" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Type d'incident</label>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;" id="typeIncidentGrid">
+                    <button type="button" class="type-inc-btn" data-type="Presqu'accident" onclick="selectTypeIncident(this)">
+                        <span style="font-size:20px;">⚠️</span>
+                        <span style="font-size:12px;font-weight:600;">Presqu'accident</span>
+                        <span style="font-size:10px;color:var(--muted);">Failli arriver, pas de blessé</span>
+                    </button>
+                    <button type="button" class="type-inc-btn" data-type="Accident sans arrêt" onclick="selectTypeIncident(this)">
+                        <span style="font-size:20px;">🩹</span>
+                        <span style="font-size:12px;font-weight:600;">Accident sans arrêt</span>
+                        <span style="font-size:10px;color:var(--muted);">Blessure légère, reprise le lendemain</span>
+                    </button>
+                    <button type="button" class="type-inc-btn" data-type="Accident avec arrêt" onclick="selectTypeIncident(this)">
+                        <span style="font-size:20px;">🚨</span>
+                        <span style="font-size:12px;font-weight:600;">Accident avec arrêt</span>
+                        <span style="font-size:10px;color:var(--muted);">Arrêt de travail — déclaration CPAM</span>
+                    </button>
+                    <button type="button" class="type-inc-btn" data-type="Incident matériel" onclick="selectTypeIncident(this)">
+                        <span style="font-size:20px;">🔧</span>
+                        <span style="font-size:12px;font-weight:600;">Incident matériel</span>
+                        <span style="font-size:10px;color:var(--muted);">Dommage équipement, pas de blessé</span>
+                    </button>
+                </div>
+                <input type="hidden" id="secType" value="">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Personne impliquée (si blessure)</label>
+                <input type="text" id="secPersonne" class="form-input" placeholder="Nom, prénom, entreprise…">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Description</label>
+                <textarea id="secDescription" class="form-textarea" rows="3" placeholder="Décrivez les circonstances de l'incident…" required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Actions correctives immédiates</label>
+                <textarea id="secActions" class="form-textarea" rows="2" placeholder="Mesures prises immédiatement…"></textarea>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" onclick="closeModal('modalSecurite')">Annuler</button>
+                <button type="submit" class="btn-primary">Déclarer l'incident</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Detail Sécurité -->
+<div id="modalDetailSecurite" class="modal-overlay hidden">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 class="modal-title">Incident sécurité</h2>
+            <button class="btn-close" onclick="closeModal('modalDetailSecurite')">✕</button>
+        </div>
+        <div id="detailSecuriteContent"></div>
+    </div>
+</div>
+
+<!-- Modal Nouveau Chantier -->
+<div id="modalChantier" class="modal-overlay hidden">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 class="modal-title">Nouveau chantier</h2>
+            <button class="btn-close" onclick="closeModal('modalChantier')">✕</button>
+        </div>
+        <div id="modalChantierError" class="form-error hidden"></div>
+        <form id="formChantier" onsubmit="submitChantier(event)">
+            <div class="form-group">
+                <label class="form-label">Nom du chantier</label>
+                <input type="text" id="cNom" class="form-input" placeholder="Ex: Résidence Les Acacias — Bât A" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Adresse</label>
+                <input type="text" id="cAdresse" class="form-input" placeholder="12 rue des Lilas, 69000 Lyon">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Date de début</label>
+                    <input type="date" id="cDebut" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Date de fin prévisionnelle</label>
+                    <input type="date" id="cFin" class="form-input">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Conducteur de travaux</label>
+                <select id="cConducteur" class="form-select"></select>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" onclick="closeModal('modalChantier')">Annuler</button>
+                <button type="submit" class="btn-primary">Créer le chantier</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Utilisateur -->
+<div id="modalUser" class="modal-overlay hidden">
+    <div class="modal" style="max-width:480px;">
+        <div class="modal-header">
+            <h2 class="modal-title">Nouvel utilisateur</h2>
+            <button class="btn-close" onclick="closeModal('modalUser')">✕</button>
+        </div>
+        <div id="modalUserError" class="form-error hidden"></div>
+        <form id="formUser" onsubmit="submitUser(event)">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Prénom</label>
+                    <input type="text" id="uPrenom" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Nom</label>
+                    <input type="text" id="uNom" class="form-input" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Rôle</label>
+                <select id="uRole" class="form-select" required>
+                    <option value="">— Sélectionner —</option>
+                    <option value="chef">Chef de chantier</option>
+                    <option value="conducteur">Conducteur de travaux</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Code PIN</label>
+                <input type="text" id="uPin" class="form-input" placeholder="6 chiffres" maxlength="6" required>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" onclick="closeModal('modalUser')">Annuler</button>
+                <button type="submit" class="btn-primary">Créer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toastEl" class="toast"></div>
+
+<style>
+    .type-inc-btn {
+        display: flex; flex-direction: column; align-items: center; gap: 4px;
+        padding: 14px 10px;
+        border: 1.5px solid var(--border);
+        border-radius: 10px;
+        background: var(--card);
+        cursor: pointer;
+        font-family: 'DM Sans', system-ui, sans-serif;
+        transition: all 0.15s;
+        text-align: center;
+        color: var(--text);
+    }
+    .type-inc-btn:hover { border-color: var(--orange); background: var(--orange-light); }
+    .type-inc-btn.active { border-color: var(--orange); background: var(--orange-light); box-shadow: 0 0 0 2px var(--orange)33; }
+</style>
+
+<script>
+    // ══════════════════════════════════════════
+    // CONFIG SUPABASE
+    // ══════════════════════════════════════════
+    const SUPABASE_URL = 'VOTRE_URL_SUPABASE';
+    const SUPABASE_KEY = 'VOTRE_CLE_SUPABASE';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // ══════════════════════════════════════════
+    // ÉTAT GLOBAL
+    // ══════════════════════════════════════════
+    let session     = null;
+    let chantiers   = [];
+    let rapports    = [];
+    let ncs         = [];
+    let incidents   = [];
+    let users       = [];
+    let currentPage = '';
+
+    // ══════════════════════════════════════════
+    // UTILITAIRES
+    // ══════════════════════════════════════════
+    function esc(s) {
+        if (!s) return '';
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function showToast(msg, duration = 3000) {
+        const t = document.getElementById('toastEl');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), duration);
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.add('hidden');
+    }
+
+    function openModal(id) {
+        document.getElementById(id).classList.remove('hidden');
+    }
+
+    function today() {
+        return new Date().toISOString().split('T')[0];
+    }
+
+    function formatDate(d) {
+        if (!d) return '—';
+        const dt = new Date(d + 'T00:00:00');
+        return dt.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
+    function toggleDark() {
+        document.body.classList.toggle('dark');
+        document.getElementById('btnDark').textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
+    }
+
+    // ══════════════════════════════════════════
+    // LOGIN
+    // ══════════════════════════════════════════
+    async function loadUsersForLogin() {
+        const { data } = await sb.from('users').select('id, prenom, nom, role').order('nom');
+        users = data || [];
+        const sel = document.getElementById('loginUserSelect');
+        const role = document.getElementById('selectedRole').value;
+        sel.innerHTML = '<option value="">— Sélectionner —</option>';
+        users.filter(u => u.role === role).forEach(u => {
+            sel.innerHTML += `<option value="${u.id}">${esc(u.prenom)} ${esc(u.nom)}</option>`;
+        });
+    }
+
+    function selectRole(role) {
+        document.getElementById('selectedRole').value = role;
+        document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
+        document.querySelector(`[data-role="${role}"]`).classList.add('active');
+        const isAdmin = role === 'admin';
+        document.getElementById('userGroup').classList.toggle('hidden', isAdmin);
+        document.getElementById('pinGroup').classList.remove('hidden');
+        if (!isAdmin) loadUsersForLogin();
+    }
+
+    function showLoginError(msg) {
+        const el = document.getElementById('loginError');
+        el.textContent = msg;
+        el.classList.remove('hidden');
+    }
+
+    async function submitLogin() {
+        const role = document.getElementById('selectedRole').value;
+        const pin  = document.getElementById('loginPin').value.trim();
+        document.getElementById('loginError').classList.add('hidden');
+
+        if (!role)  { showLoginError('Veuillez sélectionner un rôle.'); return; }
+        if (!pin)   { showLoginError('Veuillez saisir votre PIN.'); return; }
+
+        if (role === 'admin') {
+            const { error } = await sb.auth.signInWithPassword({ email: 'admin@irna-btp.fr', password: pin });
+            if (error) { showLoginError('PIN incorrect.'); return; }
+            session = { id: 'admin', prenom: 'Direction', nom: '', role: 'admin', name: 'Direction' };
+        } else {
+            const userId = document.getElementById('loginUserSelect').value;
+            if (!userId) { showLoginError('Veuillez sélectionner un utilisateur.'); return; }
+            const { data, error } = await sb.from('users').select('*').eq('id', userId).eq('pin', pin).single();
+            if (error || !data) { showLoginError('PIN incorrect.'); return; }
+            session = { ...data, name: data.prenom + ' ' + data.nom };
+        }
+
+        await startApp();
+    }
+
+    async function logout() {
+        await sb.auth.signOut();
+        session = null;
+        document.getElementById('appScreen').classList.add('hidden');
+        document.getElementById('loginScreen').classList.remove('hidden');
+        document.getElementById('loginPin').value = '';
+        document.getElementById('selectedRole').value = '';
+        document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
+        document.getElementById('pinGroup').classList.add('hidden');
+        document.getElementById('userGroup').classList.add('hidden');
+    }
+
+    // ══════════════════════════════════════════
+    // DÉMARRAGE APP
+    // ══════════════════════════════════════════
+    async function startApp() {
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('appScreen').classList.remove('hidden');
+
+        // Header user
+        const roleLabels = { admin: 'Direction', conducteur: 'Conducteur', chef: 'Chef de chantier' };
+        const roleClasses = { admin: 'role-admin', conducteur: 'role-conducteur', chef: 'role-chef' };
+        document.getElementById('headerUser').innerHTML =
+            `<span class="role-pill ${roleClasses[session.role]}">${roleLabels[session.role]}</span>
+             <span>${esc(session.name)}</span>`;
+
+        // Charger les données
+        await loadAll();
+
+        // Construire la nav
+        buildNav();
+
+        // Page par défaut
+        navigateTo(session.role === 'chef' ? 'rapports' : 'dashboard');
+    }
+
+    async function loadAll() {
+        const [c, r, n, i, u] = await Promise.all([
+            sb.from('chantiers').select('*').order('nom'),
+            sb.from('rapports').select('*').order('date', { ascending: false }),
+            sb.from('non_conformites').select('*').order('created_at', { ascending: false }),
+            sb.from('incidents_securite').select('*').order('created_at', { ascending: false }),
+            sb.from('users').select('*').order('nom')
+        ]);
+        chantiers = c.data || [];
+        rapports  = r.data || [];
+        ncs       = n.data || [];
+        incidents = i.data || [];
+        users     = u.data || [];
+    }
+
+    function buildNav() {
+        const tabs = {
+            admin:      ['dashboard','rapports','nc','securite','chantiers','utilisateurs'],
+            conducteur: ['dashboard','rapports','nc','securite'],
+            chef:       ['rapports','nc','securite']
+        };
+        const labels = {
+            dashboard:    '📊 Dashboard',
+            rapports:     '📋 Rapports',
+            nc:           '⚠️ Non-conformités',
+            securite:     '🦺 Sécurité',
+            chantiers:    '🏗️ Chantiers',
+            utilisateurs: '👥 Utilisateurs'
+        };
+        const inner = document.getElementById('navTabsInner');
+        inner.innerHTML = tabs[session.role].map(t =>
+            `<button class="nav-tab" id="tab-${t}" onclick="navigateTo('${t}')">${labels[t]}</button>`
+        ).join('');
+    }
+
+    function navigateTo(page) {
+        currentPage = page;
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        const tab = document.getElementById('tab-' + page);
+        if (tab) tab.classList.add('active');
+
+        ['dashboard','rapports','nc','securite','chantiers','utilisateurs'].forEach(p => {
+            document.getElementById('page' + p.charAt(0).toUpperCase() + p.slice(1)).classList.add('hidden');
+        });
+        const pageId = 'page' + page.charAt(0).toUpperCase() + page.slice(1);
+        document.getElementById(pageId).classList.remove('hidden');
+
+        const renders = {
+            dashboard:    renderDashboard,
+            rapports:     renderRapports,
+            nc:           renderNC,
+            securite:     renderSecurite,
+            chantiers:    renderChantiers,
+            utilisateurs: renderUtilisateurs
+        };
+        if (renders[page]) renders[page]();
+    }
+
+    // ══════════════════════════════════════════
+    // DASHBOARD
+    // ══════════════════════════════════════════
+    function renderDashboard() {
+        const el = document.getElementById('pageDashboard');
+
+        const mesChantiers = session.role === 'conducteur'
+            ? chantiers.filter(c => c.conducteur_id === session.id)
+            : chantiers;
+
+        const actifs = mesChantiers.filter(c => c.statut === 'En cours').length;
+        const ncsOuvertes = ncs.filter(n => ['Ouverte','En cours'].includes(n.statut)).length;
+        const incTotal = incidents.length;
+        const accAvecArret = incidents.filter(i => i.type === 'Accident avec arrêt').length;
+        const rapportsAujourd = rapports.filter(r => r.date === today()).length;
+        const rapportsSoumis = rapports.filter(r => r.statut === 'Soumis').length;
+
+        // Alertes
+        const alerts = [];
+        const ncDepassees = ncs.filter(n => n.statut !== 'Levée' && n.delai && new Date(n.delai) < new Date());
+        if (ncDepassees.length > 0)
+            alerts.push({ icon:'⚠️', msg:`${ncDepassees.length} non-conformité${ncDepassees.length>1?'s':''} hors délai`, crit:true });
+        if (rapportsSoumis > 0)
+            alerts.push({ icon:'📋', msg:`${rapportsSoumis} rapport${rapportsSoumis>1?'s':''} en attente de validation`, crit:false });
+        if (accAvecArret > 0)
+            alerts.push({ icon:'🚨', msg:`${accAvecArret} accident${accAvecArret>1?'s':''} avec arrêt de travail enregistré${accAvecArret>1?'s':''}`, crit:true });
+
+        const alertsHtml = alerts.length > 0
+            ? `<div class="card" style="margin-bottom:20px;">
+                <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">🔔 Alertes</div>
+                ${alerts.map(a => `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;background:${a.crit?'var(--red-light)':'var(--orange-light)'};border:1px solid ${a.crit?'#fecaca':'#fed7aa'};margin-bottom:8px;font-size:13px;font-weight:600;color:${a.crit?'var(--red)':'var(--orange-dark)'};">${a.icon} ${esc(a.msg)}</div>`).join('')}
+               </div>`
+            : '';
+
+        // Derniers rapports
+        const dernRapports = rapports.slice(0, 5).map(r => {
+            const ch = chantiers.find(c => c.id === r.chantier_id);
+            return `<tr>
+                <td>${esc(ch?.nom || '—')}</td>
+                <td>${formatDate(r.date)}</td>
+                <td>${r.meteo || '—'}</td>
+                <td>${r.total_effectif || 0} pers.</td>
+                <td>${statutBadgeRapport(r.statut)}</td>
+                <td><button class="btn-primary btn-sm" onclick="openDetailRapport('${r.id}')">Voir</button></td>
+            </tr>`;
+        }).join('');
+
+        el.innerHTML = `
+            <div class="page-header">
+                <div>
+                    <div class="page-title">Dashboard</div>
+                    <div class="page-sub">Vue d'ensemble — ${new Date().toLocaleDateString('fr-FR', {weekday:'long',day:'numeric',month:'long'})}</div>
+                </div>
+            </div>
+
+            ${alertsHtml}
+
+            <div class="kpi-grid">
+                <div class="kpi-card orange">
+                    <div class="kpi-val">${actifs}</div>
+                    <div class="kpi-label">Chantiers actifs</div>
+                    <div class="kpi-sub">${mesChantiers.length} au total</div>
+                </div>
+                <div class="kpi-card blue">
+                    <div class="kpi-val">${rapportsAujourd}</div>
+                    <div class="kpi-label">Rapports aujourd'hui</div>
+                    <div class="kpi-sub">${rapportsSoumis} à valider</div>
+                </div>
+                <div class="kpi-card red">
+                    <div class="kpi-val">${ncsOuvertes}</div>
+                    <div class="kpi-label">NC ouvertes</div>
+                    <div class="kpi-sub">${ncDepassees?.length || 0} hors délai</div>
+                </div>
+                <div class="kpi-card green">
+                    <div class="kpi-val">${incTotal}</div>
+                    <div class="kpi-label">Incidents sécurité</div>
+                    <div class="kpi-sub">${accAvecArret} avec arrêt</div>
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;" class="dash-two-col">
+                <div class="card">
+                    <div style="font-size:13px;font-weight:700;margin-bottom:14px;">🏗️ Chantiers en cours</div>
+                    ${mesChantiers.filter(c=>c.statut==='En cours').slice(0,4).map(c => {
+                        const nRapports = rapports.filter(r=>r.chantier_id===c.id).length;
+                        const nNC = ncs.filter(n=>n.chantier_id===c.id&&n.statut!=='Levée').length;
+                        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
+                            <div>
+                                <div style="font-size:13px;font-weight:600;">${esc(c.nom)}</div>
+                                <div style="font-size:11px;color:var(--muted);">${esc(c.adresse||'')}</div>
+                            </div>
+                            <div style="display:flex;gap:6px;">
+                                ${nNC > 0 ? `<span class="badge badge-red">${nNC} NC</span>` : ''}
+                                <span class="badge badge-gray">${nRapports} rapports</span>
+                            </div>
+                        </div>`;
+                    }).join('') || '<div class="empty-state"><p>Aucun chantier actif</p></div>'}
+                </div>
+
+                <div class="card">
+                    <div style="font-size:13px;font-weight:700;margin-bottom:14px;">📋 Derniers rapports</div>
+                    ${rapports.slice(0,5).map(r => {
+                        const ch = chantiers.find(c=>c.id===r.chantier_id);
+                        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
+                            <div>
+                                <div style="font-size:13px;font-weight:600;">${esc(ch?.nom||'—')}</div>
+                                <div style="font-size:11px;color:var(--muted);">${r.meteo||''} ${formatDate(r.date)}</div>
+                            </div>
+                            ${statutBadgeRapport(r.statut)}
+                        </div>`;
+                    }).join('') || '<div class="empty-state"><p>Aucun rapport</p></div>'}
+                </div>
+            </div>`;
+    }
+
+    // ══════════════════════════════════════════
+    // RAPPORTS JOURNALIERS
+    // ══════════════════════════════════════════
+    function statutBadgeRapport(s) {
+        const map = {
+            'Brouillon': 'badge-gray',
+            'Soumis':    'badge-orange',
+            'Validé':    'badge-green'
+        };
+        return `<span class="badge ${map[s]||'badge-gray'}">${s||'Brouillon'}</span>`;
+    }
+
+    function renderRapports() {
+        const el = document.getElementById('pageRapports');
+        const isAdmin = session.role !== 'chef';
+
+        const mesFiltres = session.role === 'chef'
+            ? rapports.filter(r => r.soumis_par === session.id)
+            : rapports;
+
+        el.innerHTML = `
+            <div class="page-header">
+                <div>
+                    <div class="page-title">Rapports journaliers</div>
+                    <div class="page-sub">${mesFiltres.length} rapport${mesFiltres.length!==1?'s':''}</div>
+                </div>
+                <div style="display:flex;gap:10px;">
+                    ${session.role === 'chef' ? `<button class="btn-primary" onclick="openNouveauRapport()">+ Nouveau rapport</button>` : ''}
+                </div>
+            </div>
+
+            <div class="filters-bar">
+                <input type="search" id="searchRapport" placeholder="🔍 Rechercher…" oninput="filterRapports()">
+                <select id="filterRapportChantier" onchange="filterRapports()">
+                    <option value="">Tous les chantiers</option>
+                    ${chantiers.map(c=>`<option value="${c.id}">${esc(c.nom)}</option>`).join('')}
+                </select>
+                <select id="filterRapportStatut" onchange="filterRapports()">
+                    <option value="">Tous les statuts</option>
+                    <option>Brouillon</option>
+                    <option>Soumis</option>
+                    <option>Validé</option>
+                </select>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Chantier</th>
+                            <th>Date</th>
+                            <th>Météo</th>
+                            <th>Effectif</th>
+                            <th>Avancement</th>
+                            <th>Statut</th>
+                            <th>Saisi par</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="rapportsTableBody"></tbody>
+                </table>
+            </div>`;
+
+        filterRapports();
+    }
+
+    function filterRapports() {
+        const search   = (document.getElementById('searchRapport')?.value||'').toLowerCase();
+        const chId     = document.getElementById('filterRapportChantier')?.value||'';
+        const statut   = document.getElementById('filterRapportStatut')?.value||'';
+
+        let src = session.role === 'chef'
+            ? rapports.filter(r => r.soumis_par === session.id)
+            : rapports;
+
+        if (chId)   src = src.filter(r => r.chantier_id === chId);
+        if (statut) src = src.filter(r => (r.statut||'Brouillon') === statut);
+        if (search) src = src.filter(r => {
+            const ch = chantiers.find(c=>c.id===r.chantier_id);
+            return (ch?.nom||'').toLowerCase().includes(search) || (r.avancement||'').toLowerCase().includes(search);
+        });
+
+        const body = document.getElementById('rapportsTableBody');
+        if (!body) return;
+
+        if (src.length === 0) {
+            body.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--muted);">Aucun rapport trouvé</td></tr>`;
+            return;
+        }
+
+        body.innerHTML = src.map(r => {
+            const ch = chantiers.find(c=>c.id===r.chantier_id);
+            const user = users.find(u=>u.id===r.soumis_par);
+            const canValidate = session.role !== 'chef' && r.statut === 'Soumis';
+            return `<tr>
+                <td><span style="font-weight:600;">${esc(ch?.nom||'—')}</span></td>
+                <td>${formatDate(r.date)}</td>
+                <td style="font-size:18px;">${r.meteo||'—'}</td>
+                <td>${r.total_effectif||0} pers.</td>
+                <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(r.avancement)}">${esc(r.avancement)||'—'}</td>
+                <td>${statutBadgeRapport(r.statut)}</td>
+                <td>${esc(user ? user.prenom+' '+user.nom : '—')}</td>
+                <td>
+                    <div style="display:flex;gap:6px;">
+                        <button class="btn-secondary btn-sm" onclick="openDetailRapport('${r.id}')">Voir</button>
+                        ${canValidate ? `<button class="btn-primary btn-sm" onclick="validerRapport('${r.id}')">✓ Valider</button>` : ''}
+                    </div>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function openNouveauRapport() {
+        document.getElementById('modalRapportTitle').textContent = 'Nouveau rapport journalier';
+        document.getElementById('modalRapportError').classList.add('hidden');
+        document.getElementById('formRapport').reset();
+        document.getElementById('rDate').value = today();
+        document.getElementById('rMeteo').value = '';
+        document.querySelectorAll('.meteo-btn').forEach(b=>b.classList.remove('active'));
+
+        // Remplir chantiers (chef voit ses chantiers assignés, sinon tous)
+        const sel = document.getElementById('rChantier');
+        const mesCh = session.role === 'chef' && session.chantiers
+            ? chantiers.filter(c => session.chantiers.includes(c.id) && c.statut === 'En cours')
+            : chantiers.filter(c => c.statut === 'En cours');
+        sel.innerHTML = '<option value="">— Sélectionner —</option>' + mesCh.map(c=>`<option value="${c.id}">${esc(c.nom)}</option>`).join('');
+
+        // Init effectif
+        document.getElementById('effectifList').innerHTML = '';
+        addEffectifRow();
+
+        openModal('modalRapport');
+    }
+
+    function selectMeteo(m) {
+        document.getElementById('rMeteo').value = m;
+        document.querySelectorAll('.meteo-btn').forEach(b=>b.classList.toggle('active', b.dataset.meteo===m));
+    }
+
+    function addEffectifRow() {
+        const list = document.getElementById('effectifList');
+        const idx  = list.children.length;
+        const div  = document.createElement('div');
+        div.className = 'effectif-row';
+        div.innerHTML = `
+            <select class="eff-metier">
+                <option value="">— Corps de métier —</option>
+                <option>Maçon</option>
+                <option>Coffreur</option>
+                <option>Ferrailleur</option>
+                <option>Charpentier</option>
+                <option>Couvreur</option>
+                <option>Électricien</option>
+                <option>Plombier</option>
+                <option>Plaquiste</option>
+                <option>Peintre</option>
+                <option>Carreleur</option>
+                <option>Chef de chantier</option>
+                <option>Conducteur d'engin</option>
+                <option>Intérimaire</option>
+                <option>Autre</option>
+            </select>
+            <input type="number" class="eff-nb" min="1" max="99" value="1" placeholder="Nb">
+            <button type="button" class="btn-icon" onclick="this.parentElement.remove()">✕</button>`;
+        list.appendChild(div);
+    }
+
+    async function submitRapport(e) {
+        e.preventDefault();
+        const errEl = document.getElementById('modalRapportError');
+        errEl.classList.add('hidden');
+
+        const chantier = document.getElementById('rChantier').value;
+        const date     = document.getElementById('rDate').value;
+        const meteo    = document.getElementById('rMeteo').value;
+
+        if (!chantier) { errEl.textContent='Veuillez sélectionner un chantier.'; errEl.classList.remove('hidden'); return; }
+        if (!meteo)    { errEl.textContent='Veuillez sélectionner la météo.'; errEl.classList.remove('hidden'); return; }
+
+        // Effectif
+        const rows = document.querySelectorAll('.effectif-row');
+        const effectif = [];
+        let totalEffectif = 0;
+        rows.forEach(r => {
+            const metier = r.querySelector('.eff-metier').value;
+            const nb     = parseInt(r.querySelector('.eff-nb').value) || 0;
+            if (metier && nb > 0) { effectif.push({ metier, nb }); totalEffectif += nb; }
+        });
+        if (effectif.length === 0) { errEl.textContent='Ajoutez au moins un corps de métier.'; errEl.classList.remove('hidden'); return; }
+
+        const rapport = {
+            chantier_id:    chantier,
+            date,
+            meteo,
+            effectif,
+            total_effectif: totalEffectif,
+            avancement:     document.getElementById('rAvancement').value.trim(),
+            materiaux:      document.getElementById('rMateriaux').value.trim(),
+            problemes:      document.getElementById('rProblemes').value.trim(),
+            statut:         'Soumis',
+            soumis_par:     session.id,
+            created_at:     new Date().toISOString()
+        };
+
+        const { data, error } = await sb.from('rapports').insert(rapport).select().single();
+        if (error) { errEl.textContent='Erreur : '+error.message; errEl.classList.remove('hidden'); return; }
+
+        rapports.unshift(data);
+        closeModal('modalRapport');
+        renderRapports();
+        showToast('✅ Rapport soumis avec succès.');
+    }
+
+    function openDetailRapport(id) {
+        const r   = rapports.find(x=>x.id===id);
+        if (!r) return;
+        const ch  = chantiers.find(c=>c.id===r.chantier_id);
+        const usr = users.find(u=>u.id===r.soumis_par);
+        const isAdmin = session.role !== 'chef';
+
+        document.getElementById('detailRapportTitle').textContent = (ch?.nom||'—') + ' — ' + formatDate(r.date);
+
+        const effectifHtml = (r.effectif||[]).map(e=>
+            `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border);">
+                <span>${esc(e.metier)}</span><span style="font-weight:700;">${e.nb} pers.</span>
+            </div>`
+        ).join('');
+
+        document.getElementById('detailRapportContent').innerHTML = `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+                <div class="detail-field"><label>Chantier</label><div class="val">${esc(ch?.nom||'—')}</div></div>
+                <div class="detail-field"><label>Date</label><div class="val">${formatDate(r.date)}</div></div>
+                <div class="detail-field"><label>Météo</label><div class="val" style="font-size:24px;">${r.meteo||'—'}</div></div>
+                <div class="detail-field"><label>Statut</label><div class="val">${statutBadgeRapport(r.statut)}</div></div>
+                <div class="detail-field"><label>Saisi par</label><div class="val">${esc(usr?usr.prenom+' '+usr.nom:'—')}</div></div>
+            </div>
+
+            <div style="margin-bottom:16px;">
+                <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">Effectif (${r.total_effectif||0} personnes)</div>
+                ${effectifHtml || '<span style="color:var(--muted);font-size:13px;">—</span>'}
+            </div>
+
+            ${r.avancement ? `<div class="detail-field"><label>Avancement</label><div class="val">${esc(r.avancement)}</div></div>` : ''}
+            ${r.materiaux  ? `<div class="detail-field"><label>Matériaux</label><div class="val" style="white-space:pre-wrap;">${esc(r.materiaux)}</div></div>` : ''}
+            ${r.problemes  ? `<div class="detail-field" style="background:var(--orange-light);border:1px solid #fed7aa;border-radius:8px;padding:12px;"><label>⚠️ Problèmes / Observations</label><div class="val" style="white-space:pre-wrap;">${esc(r.problemes)}</div></div>` : ''}
+
+            ${isAdmin && r.statut === 'Soumis' ? `
+            <div class="form-actions">
+                <button class="btn-primary" onclick="validerRapport('${r.id}');closeModal('modalDetailRapport')">✓ Valider ce rapport</button>
+            </div>` : ''}`;
+
+        openModal('modalDetailRapport');
+    }
+
+    async function validerRapport(id) {
+        const { error } = await sb.from('rapports').update({ statut: 'Validé', valide_par: session.id }).eq('id', id);
+        if (error) { showToast('❌ Erreur lors de la validation.'); return; }
+        const r = rapports.find(x=>x.id===id);
+        if (r) r.statut = 'Validé';
+        renderRapports();
+        showToast('✅ Rapport validé.');
+    }
+
+    // ══════════════════════════════════════════
+    // NON-CONFORMITÉS
+    // ══════════════════════════════════════════
+    function statutBadgeNC(s) {
+        const map = { 'Ouverte':'badge-red', 'En cours':'badge-orange', 'Levée':'badge-green' };
+        return `<span class="badge ${map[s]||'badge-gray'}">${s||'Ouverte'}</span>`;
+    }
+
+    function renderNC() {
+        const el = document.getElementById('pageNC');
+        el.innerHTML = `
+            <div class="page-header">
+                <div>
+                    <div class="page-title">Non-conformités</div>
+                    <div class="page-sub">${ncs.length} non-conformité${ncs.length!==1?'s':''}</div>
+                </div>
+                <button class="btn-primary" onclick="openNouvelleNC()">+ Signaler une NC</button>
+            </div>
+
+            <div class="filters-bar">
+                <input type="search" id="searchNC" placeholder="🔍 Rechercher…" oninput="filterNC()">
+                <select id="filterNCChantier" onchange="filterNC()">
+                    <option value="">Tous les chantiers</option>
+                    ${chantiers.map(c=>`<option value="${c.id}">${esc(c.nom)}</option>`).join('')}
+                </select>
+                <select id="filterNCStatut" onchange="filterNC()">
+                    <option value="">Tous les statuts</option>
+                    <option>Ouverte</option>
+                    <option>En cours</option>
+                    <option>Levée</option>
+                </select>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Chantier</th>
+                            <th>Type</th>
+                            <th>Localisation</th>
+                            <th>Description</th>
+                            <th>Assigné à</th>
+                            <th>Délai</th>
+                            <th>Statut</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="ncTableBody"></tbody>
+                </table>
+            </div>`;
+
+        filterNC();
+    }
+
+    function filterNC() {
+        const search = (document.getElementById('searchNC')?.value||'').toLowerCase();
+        const chId   = document.getElementById('filterNCChantier')?.value||'';
+        const statut = document.getElementById('filterNCStatut')?.value||'';
+
+        let src = [...ncs];
+        if (chId)   src = src.filter(n=>n.chantier_id===chId);
+        if (statut) src = src.filter(n=>(n.statut||'Ouverte')===statut);
+        if (search) src = src.filter(n=>{
+            const ch = chantiers.find(c=>c.id===n.chantier_id);
+            return (ch?.nom||'').toLowerCase().includes(search)
+                || (n.description||'').toLowerCase().includes(search)
+                || (n.assigne||'').toLowerCase().includes(search);
+        });
+
+        const body = document.getElementById('ncTableBody');
+        if (!body) return;
+
+        if (src.length === 0) {
+            body.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--muted);">Aucune non-conformité</td></tr>`;
+            return;
+        }
+
+        const isDepassee = (n) => n.delai && n.statut !== 'Levée' && new Date(n.delai) < new Date();
+
+        body.innerHTML = src.map(n => {
+            const ch = chantiers.find(c=>c.id===n.chantier_id);
+            const dep = isDepassee(n);
+            return `<tr style="${dep?'background:var(--red-light);':''}">
+                <td><span style="font-weight:600;">${esc(ch?.nom||'—')}</span></td>
+                <td><span class="badge badge-yellow">${esc(n.type)}</span></td>
+                <td style="font-size:12px;">${esc(n.localisation)}</td>
+                <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(n.description)}">${esc(n.description)}</td>
+                <td style="font-size:12px;">${esc(n.assigne||'—')}</td>
+                <td style="font-size:12px;${dep?'color:var(--red);font-weight:700;':''}">${n.delai?formatDate(n.delai)+''+( dep?' ⚠️':''):'—'}</td>
+                <td>${statutBadgeNC(n.statut)}</td>
+                <td><button class="btn-secondary btn-sm" onclick="openDetailNC('${n.id}')">Voir</button></td>
+            </tr>`;
+        }).join('');
+    }
+
+    function openNouvelleNC() {
+        document.getElementById('modalNCTitle').textContent = 'Nouvelle non-conformité';
+        document.getElementById('modalNCError').classList.add('hidden');
+        document.getElementById('formNC').reset();
+        const sel = document.getElementById('ncChantier');
+        sel.innerHTML = '<option value="">— Sélectionner —</option>' + chantiers.map(c=>`<option value="${c.id}">${esc(c.nom)}</option>`).join('');
+        openModal('modalNC');
+    }
+
+    async function submitNC(e) {
+        e.preventDefault();
+        const errEl = document.getElementById('modalNCError');
+        errEl.classList.add('hidden');
+
+        const nc = {
+            chantier_id:  document.getElementById('ncChantier').value,
+            type:         document.getElementById('ncType').value,
+            localisation: document.getElementById('ncLocalisation').value.trim(),
+            description:  document.getElementById('ncDescription').value.trim(),
+            assigne:      document.getElementById('ncAssigne').value.trim(),
+            delai:        document.getElementById('ncDelai').value || null,
+            statut:       'Ouverte',
+            soumis_par:   session.id,
+            created_at:   new Date().toISOString()
+        };
+
+        if (!nc.chantier_id) { errEl.textContent='Veuillez sélectionner un chantier.'; errEl.classList.remove('hidden'); return; }
+
+        const { data, error } = await sb.from('non_conformites').insert(nc).select().single();
+        if (error) { errEl.textContent='Erreur : '+error.message; errEl.classList.remove('hidden'); return; }
+
+        ncs.unshift(data);
+        closeModal('modalNC');
+        renderNC();
+        showToast('✅ Non-conformité enregistrée.');
+    }
+
+    function openDetailNC(id) {
+        const n  = ncs.find(x=>x.id===id);
+        if (!n) return;
+        const ch = chantiers.find(c=>c.id===n.chantier_id);
+        const isAdmin = session.role !== 'chef';
+
+        const statutOptions = ['Ouverte','En cours','Levée'].map(s =>
+            `<button class="btn-secondary btn-sm ${n.statut===s?'':'opacity-60'}"
+                style="${n.statut===s?'border-color:var(--orange);color:var(--orange);':''}"
+                onclick="updateStatutNC('${n.id}','${s}')">${s}</button>`
+        ).join('');
+
+        document.getElementById('detailNCContent').innerHTML = `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+                <div class="detail-field"><label>Chantier</label><div class="val">${esc(ch?.nom||'—')}</div></div>
+                <div class="detail-field"><label>Type</label><div class="val"><span class="badge badge-yellow">${esc(n.type)}</span></div></div>
+                <div class="detail-field"><label>Localisation</label><div class="val">${esc(n.localisation)}</div></div>
+                <div class="detail-field"><label>Statut</label><div class="val">${statutBadgeNC(n.statut)}</div></div>
+                ${n.assigne ? `<div class="detail-field"><label>Assigné à</label><div class="val">${esc(n.assigne)}</div></div>` : ''}
+                ${n.delai   ? `<div class="detail-field"><label>Délai</label><div class="val">${formatDate(n.delai)}</div></div>` : ''}
+            </div>
+            <div class="detail-field" style="margin-bottom:20px;">
+                <label>Description</label>
+                <div class="val" style="white-space:pre-wrap;background:var(--bg);padding:12px;border-radius:8px;">${esc(n.description)}</div>
+            </div>
+            ${isAdmin ? `<div style="margin-bottom:16px;"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">Changer le statut</div><div style="display:flex;gap:8px;">${statutOptions}</div></div>` : ''}`;
+
+        openModal('modalDetailNC');
+    }
+
+    async function updateStatutNC(id, statut) {
+        const { error } = await sb.from('non_conformites').update({ statut }).eq('id', id);
+        if (error) { showToast('❌ Erreur.'); return; }
+        const n = ncs.find(x=>x.id===id);
+        if (n) n.statut = statut;
+        closeModal('modalDetailNC');
+        renderNC();
+        showToast('✅ Statut mis à jour.');
+    }
+
+    // ══════════════════════════════════════════
+    // SÉCURITÉ
+    // ══════════════════════════════════════════
+    function typeIncidentBadge(t) {
+        const map = {
+            "Presqu'accident":    'badge-yellow',
+            'Accident sans arrêt':'badge-orange',
+            'Accident avec arrêt':'badge-red',
+            'Incident matériel':  'badge-blue'
+        };
+        return `<span class="badge ${map[t]||'badge-gray'}">${t}</span>`;
+    }
+
+    function statutBadgeSecurite(s) {
+        const map = { 'Ouvert':'badge-red', 'En cours':'badge-orange', 'Clôturé':'badge-green' };
+        return `<span class="badge ${map[s]||'badge-gray'}">${s||'Ouvert'}</span>`;
+    }
+
+    function renderSecurite() {
+        const el = document.getElementById('pageSecurite');
+        el.innerHTML = `
+            <div class="page-header">
+                <div>
+                    <div class="page-title">Registre sécurité</div>
+                    <div class="page-sub">${incidents.length} incident${incidents.length!==1?'s':''} enregistré${incidents.length!==1?'s':''}</div>
+                </div>
+                <button class="btn-primary" onclick="openNouvelIncidentSec()">+ Déclarer un incident</button>
+            </div>
+
+            <div class="filters-bar">
+                <input type="search" id="searchSec" placeholder="🔍 Rechercher…" oninput="filterSecurite()">
+                <select id="filterSecChantier" onchange="filterSecurite()">
+                    <option value="">Tous les chantiers</option>
+                    ${chantiers.map(c=>`<option value="${c.id}">${esc(c.nom)}</option>`).join('')}
+                </select>
+                <select id="filterSecType" onchange="filterSecurite()">
+                    <option value="">Tous les types</option>
+                    <option>Presqu'accident</option>
+                    <option>Accident sans arrêt</option>
+                    <option>Accident avec arrêt</option>
+                    <option>Incident matériel</option>
+                </select>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Chantier</th>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Personne impliquée</th>
+                            <th>Description</th>
+                            <th>Statut</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="securiteTableBody"></tbody>
+                </table>
+            </div>`;
+
+        filterSecurite();
+    }
+
+    function filterSecurite() {
+        const search = (document.getElementById('searchSec')?.value||'').toLowerCase();
+        const chId   = document.getElementById('filterSecChantier')?.value||'';
+        const type   = document.getElementById('filterSecType')?.value||'';
+
+        let src = [...incidents];
+        if (chId)  src = src.filter(i=>i.chantier_id===chId);
+        if (type)  src = src.filter(i=>i.type===type);
+        if (search) src = src.filter(i=>{
+            const ch = chantiers.find(c=>c.id===i.chantier_id);
+            return (ch?.nom||'').toLowerCase().includes(search)
+                || (i.description||'').toLowerCase().includes(search)
+                || (i.personne||'').toLowerCase().includes(search);
+        });
+
+        const body = document.getElementById('securiteTableBody');
+        if (!body) return;
+
+        if (src.length === 0) {
+            body.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--muted);">Aucun incident enregistré</td></tr>`;
+            return;
+        }
+
+        body.innerHTML = src.map(i => {
+            const ch = chantiers.find(c=>c.id===i.chantier_id);
+            const isAvecArret = i.type === 'Accident avec arrêt';
+            return `<tr style="${isAvecArret?'background:var(--red-light);':''}">
+                <td><span style="font-weight:600;">${esc(ch?.nom||'—')}</span></td>
+                <td>${formatDate(i.date)}</td>
+                <td>${typeIncidentBadge(i.type)}</td>
+                <td style="font-size:12px;">${esc(i.personne||'—')}</td>
+                <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(i.description)}">${esc(i.description)}</td>
+                <td>${statutBadgeSecurite(i.statut)}</td>
+                <td><button class="btn-secondary btn-sm" onclick="openDetailSecurite('${i.id}')">Voir</button></td>
+            </tr>`;
+        }).join('');
+    }
+
+    function selectTypeIncident(btn) {
+        document.querySelectorAll('.type-inc-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('secType').value = btn.dataset.type;
+    }
+
+    function openNouvelIncidentSec() {
+        document.getElementById('modalSecuriteTitle').textContent = 'Déclaration incident sécurité';
+        document.getElementById('modalSecuriteError').classList.add('hidden');
+        document.getElementById('formSecurite').reset();
+        document.getElementById('secType').value = '';
+        document.querySelectorAll('.type-inc-btn').forEach(b=>b.classList.remove('active'));
+        document.getElementById('secDate').value = today();
+        const sel = document.getElementById('secChantier');
+        sel.innerHTML = '<option value="">— Sélectionner —</option>' + chantiers.map(c=>`<option value="${c.id}">${esc(c.nom)}</option>`).join('');
+        openModal('modalSecurite');
+    }
+
+    async function submitSecurite(e) {
+        e.preventDefault();
+        const errEl = document.getElementById('modalSecuriteError');
+        errEl.classList.add('hidden');
+
+        const type = document.getElementById('secType').value;
+        const ch   = document.getElementById('secChantier').value;
+
+        if (!ch)   { errEl.textContent='Veuillez sélectionner un chantier.'; errEl.classList.remove('hidden'); return; }
+        if (!type) { errEl.textContent='Veuillez sélectionner le type d\'incident.'; errEl.classList.remove('hidden'); return; }
+
+        const inc = {
+            chantier_id:        ch,
+            date:               document.getElementById('secDate').value,
+            type,
+            personne:           document.getElementById('secPersonne').value.trim(),
+            description:        document.getElementById('secDescription').value.trim(),
+            actions_correctives:document.getElementById('secActions').value.trim(),
+            statut:             'Ouvert',
+            soumis_par:         session.id,
+            created_at:         new Date().toISOString()
+        };
+
+        const { data, error } = await sb.from('incidents_securite').insert(inc).select().single();
+        if (error) { errEl.textContent='Erreur : '+error.message; errEl.classList.remove('hidden'); return; }
+
+        incidents.unshift(data);
+        closeModal('modalSecurite');
+        renderSecurite();
+        showToast(type==='Accident avec arrêt' ? '🚨 Incident déclaré — pensez à la CPAM.' : '✅ Incident déclaré.');
+    }
+
+    function openDetailSecurite(id) {
+        const i  = incidents.find(x=>x.id===id);
+        if (!i) return;
+        const ch = chantiers.find(c=>c.id===i.chantier_id);
+        const isAdmin = session.role !== 'chef';
+
+        const statutOpts = ['Ouvert','En cours','Clôturé'].map(s=>
+            `<button class="btn-secondary btn-sm"
+                style="${i.statut===s?'border-color:var(--orange);color:var(--orange);':''}"
+                onclick="updateStatutSecurite('${i.id}','${s}')">${s}</button>`
+        ).join('');
+
+        document.getElementById('detailSecuriteContent').innerHTML = `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+                <div class="detail-field"><label>Chantier</label><div class="val">${esc(ch?.nom||'—')}</div></div>
+                <div class="detail-field"><label>Date</label><div class="val">${formatDate(i.date)}</div></div>
+                <div class="detail-field"><label>Type</label><div class="val">${typeIncidentBadge(i.type)}</div></div>
+                <div class="detail-field"><label>Statut</label><div class="val">${statutBadgeSecurite(i.statut)}</div></div>
+                ${i.personne ? `<div class="detail-field"><label>Personne impliquée</label><div class="val">${esc(i.personne)}</div></div>` : ''}
+            </div>
+            <div class="detail-field" style="margin-bottom:16px;">
+                <label>Description</label>
+                <div class="val" style="white-space:pre-wrap;background:var(--bg);padding:12px;border-radius:8px;">${esc(i.description)}</div>
+            </div>
+            ${i.actions_correctives ? `<div class="detail-field" style="margin-bottom:20px;"><label>Actions correctives</label><div class="val" style="white-space:pre-wrap;background:var(--green-light);padding:12px;border-radius:8px;">${esc(i.actions_correctives)}</div></div>` : ''}
+            ${i.type==='Accident avec arrêt' ? `<div style="background:var(--red-light);border:1px solid #fecaca;border-radius:8px;padding:12px;margin-bottom:20px;font-size:13px;color:var(--red);font-weight:600;">🚨 Accident avec arrêt — déclaration obligatoire à la CPAM sous 48h</div>` : ''}
+            ${isAdmin ? `<div><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">Changer le statut</div><div style="display:flex;gap:8px;">${statutOpts}</div></div>` : ''}`;
+
+        openModal('modalDetailSecurite');
+    }
+
+    async function updateStatutSecurite(id, statut) {
+        const { error } = await sb.from('incidents_securite').update({ statut }).eq('id', id);
+        if (error) { showToast('❌ Erreur.'); return; }
+        const i = incidents.find(x=>x.id===id);
+        if (i) i.statut = statut;
+        closeModal('modalDetailSecurite');
+        renderSecurite();
+        showToast('✅ Statut mis à jour.');
+    }
+
+    // ══════════════════════════════════════════
+    // CHANTIERS (admin/conducteur)
+    // ══════════════════════════════════════════
+    function renderChantiers() {
+        const el = document.getElementById('pageChantiers');
+        el.innerHTML = `
+            <div class="page-header">
+                <div>
+                    <div class="page-title">Chantiers</div>
+                    <div class="page-sub">${chantiers.length} chantier${chantiers.length!==1?'s':''}</div>
+                </div>
+                <button class="btn-primary" onclick="openNouveauChantier()">+ Nouveau chantier</button>
+            </div>
+            <div class="chantier-cards" id="chantiersGrid"></div>`;
+
+        const grid = document.getElementById('chantiersGrid');
+        if (chantiers.length === 0) {
+            grid.innerHTML = `<div class="empty-state"><div class="icon">🏗️</div><p>Aucun chantier créé</p></div>`;
+            return;
+        }
+
+        grid.innerHTML = chantiers.map(c => {
+            const cond = users.find(u=>u.id===c.conducteur_id);
+            const nRap = rapports.filter(r=>r.chantier_id===c.id).length;
+            const nNC  = ncs.filter(n=>n.chantier_id===c.id&&n.statut!=='Levée').length;
+            const nInc = incidents.filter(i=>i.chantier_id===c.id).length;
+            const statutBadge = { 'En cours':'badge-green','En pause':'badge-yellow','Terminé':'badge-gray' }[c.statut]||'badge-gray';
+            return `<div class="chantier-card">
+                <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px;">
+                    <h3>${esc(c.nom)}</h3>
+                    <span class="badge ${statutBadge}">${c.statut||'En cours'}</span>
+                </div>
+                <p>${esc(c.adresse||'—')}</p>
+                ${cond ? `<p style="margin-top:4px;">👷 ${esc(cond.prenom+' '+cond.nom)}</p>` : ''}
+                ${c.debut ? `<p style="margin-top:4px;font-size:11px;">📅 ${formatDate(c.debut)} → ${c.fin?formatDate(c.fin):'?'}</p>` : ''}
+                <div class="chantier-stats">
+                    <div class="chantier-stat"><div class="n">${nRap}</div><div class="l">Rapports</div></div>
+                    <div class="chantier-stat"><div class="n" style="${nNC>0?'color:var(--red)':''}">${nNC}</div><div class="l">NC actives</div></div>
+                    <div class="chantier-stat"><div class="n">${nInc}</div><div class="l">Incidents</div></div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function openNouveauChantier() {
+        document.getElementById('modalChantierError').classList.add('hidden');
+        document.getElementById('formChantier').reset();
+        const sel = document.getElementById('cConducteur');
+        sel.innerHTML = '<option value="">— Aucun —</option>' + users.filter(u=>u.role==='conducteur').map(u=>`<option value="${u.id}">${esc(u.prenom+' '+u.nom)}</option>`).join('');
+        openModal('modalChantier');
+    }
+
+    async function submitChantier(e) {
+        e.preventDefault();
+        const nom = document.getElementById('cNom').value.trim();
+        if (!nom) return;
+
+        const ch = {
+            nom,
+            adresse:      document.getElementById('cAdresse').value.trim(),
+            debut:        document.getElementById('cDebut').value || null,
+            fin:          document.getElementById('cFin').value || null,
+            conducteur_id:document.getElementById('cConducteur').value || null,
+            statut:       'En cours',
+            created_at:   new Date().toISOString()
+        };
+
+        const { data, error } = await sb.from('chantiers').insert(ch).select().single();
+        if (error) {
+            document.getElementById('modalChantierError').textContent = 'Erreur : '+error.message;
+            document.getElementById('modalChantierError').classList.remove('hidden');
+            return;
+        }
+
+        chantiers.push(data);
+        chantiers.sort((a,b)=>a.nom.localeCompare(b.nom));
+        closeModal('modalChantier');
+        renderChantiers();
+        showToast('✅ Chantier créé.');
+    }
+
+    // ══════════════════════════════════════════
+    // UTILISATEURS (admin)
+    // ══════════════════════════════════════════
+    function renderUtilisateurs() {
+        const el = document.getElementById('pageUtilisateurs');
+        el.innerHTML = `
+            <div class="page-header">
+                <div>
+                    <div class="page-title">Utilisateurs</div>
+                    <div class="page-sub">${users.length} utilisateur${users.length!==1?'s':''}</div>
+                </div>
+                <button class="btn-primary" onclick="openModal('modalUser');document.getElementById('formUser').reset();">+ Nouvel utilisateur</button>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr><th>Nom</th><th>Rôle</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody>
+                        ${users.map(u=>{
+                            const roleLabel = {chef:'Chef de chantier',conducteur:'Conducteur de travaux'}[u.role]||u.role;
+                            const rClass    = {chef:'role-chef',conducteur:'role-conducteur'}[u.role]||'role-admin';
+                            return `<tr>
+                                <td><span style="font-weight:600;">${esc(u.prenom)} ${esc(u.nom)}</span></td>
+                                <td><span class="role-pill ${rClass}">${roleLabel}</span></td>
+                                <td><button class="btn-secondary btn-sm" style="color:var(--red);border-color:var(--red);" onclick="deleteUser('${u.id}')">Supprimer</button></td>
+                            </tr>`;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>`;
+    }
+
+    async function submitUser(e) {
+        e.preventDefault();
+        const errEl = document.getElementById('modalUserError');
+        errEl.classList.add('hidden');
+
+        const pin  = document.getElementById('uPin').value.trim();
+        if (!/^\d{4,6}$/.test(pin)) { errEl.textContent='Le PIN doit contenir 4 à 6 chiffres.'; errEl.classList.remove('hidden'); return; }
+
+        const user = {
+            prenom: document.getElementById('uPrenom').value.trim(),
+            nom:    document.getElementById('uNom').value.trim(),
+            role:   document.getElementById('uRole').value,
+            pin,
+            created_at: new Date().toISOString()
+        };
+
+        const { data, error } = await sb.from('users').insert(user).select().single();
+        if (error) { errEl.textContent='Erreur : '+error.message; errEl.classList.remove('hidden'); return; }
+
+        users.push(data);
+        closeModal('modalUser');
+        renderUtilisateurs();
+        showToast('✅ Utilisateur créé.');
+    }
+
+    async function deleteUser(id) {
+        if (!confirm('Supprimer cet utilisateur ?')) return;
+        const { error } = await sb.from('users').delete().eq('id', id);
+        if (error) { showToast('❌ Erreur.'); return; }
+        users = users.filter(u=>u.id!==id);
+        renderUtilisateurs();
+        showToast('✅ Utilisateur supprimé.');
+    }
+
+    // ══════════════════════════════════════════
+    // FERMER MODAL SUR OVERLAY
+    // ══════════════════════════════════════════
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', e => {
+            if (e.target === overlay) overlay.classList.add('hidden');
+        });
+    });
+</script>
+</body>
+</html>
