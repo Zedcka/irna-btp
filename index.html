@@ -1164,8 +1164,12 @@
     }
 
     async function loadUsersForLogin() {
-        const { data } = await sb.from('users').select('id, prenom, nom, role').order('nom');
-        users = data || [];
+        if (DEMO_MODE) {
+            users = DEMO_USERS;
+        } else {
+            const { data } = await sb.from('users').select('id, prenom, nom, role').order('nom');
+            users = data || [];
+        }
         const sel = document.getElementById('loginUserSelect');
         const role = document.getElementById('selectedRole').value;
         sel.innerHTML = '<option value="">— Sélectionner —</option>';
